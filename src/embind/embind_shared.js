@@ -4,7 +4,7 @@
 // found in the LICENSE file.
 var LibraryEmbindShared = {
   $InternalError__postset: "InternalError = Module['InternalError'] = class InternalError extends Error { constructor(message) { super(message); this.name = 'InternalError'; }}",
-  $InternalError:  undefined,
+  $InternalError: undefined,
   $BindingError__postset: "BindingError = Module['BindingError'] = class BindingError extends Error { constructor(message) { super(message); this.name = 'BindingError'; }}",
   $BindingError: undefined,
 
@@ -15,7 +15,7 @@ var LibraryEmbindShared = {
   $throwBindingError: (message) => { throw new BindingError(message); },
 
   // typeID -> { toWireType: ..., fromWireType: ... }
-  $registeredTypes:  {},
+  $registeredTypes: {},
 
   // typeID -> [callback]
   $awaitingDependencies: {},
@@ -32,7 +32,7 @@ var LibraryEmbindShared = {
     '$typeDependencies', '$throwBindingError',
     '$whenDependentTypesAreResolved'],
   $sharedRegisterType__docs: '/** @param {Object=} options */',
-  $sharedRegisterType: function(rawType, registeredInstance, options = {}) {
+  $sharedRegisterType: function (rawType, registeredInstance, options = {}) {
     var name = registeredInstance.name;
     if (!rawType) {
       throwBindingError(`type "${name}" must have a positive integer typeid pointer`);
@@ -59,18 +59,18 @@ var LibraryEmbindShared = {
     '$awaitingDependencies', '$registeredTypes',
     '$typeDependencies', '$throwInternalError'],
   $whenDependentTypesAreResolved: (myTypes, dependentTypes, getTypeConverters) => {
-    myTypes.forEach(function(type) {
-        typeDependencies[type] = dependentTypes;
+    myTypes.forEach(function (type) {
+      typeDependencies[type] = dependentTypes;
     });
 
     function onComplete(typeConverters) {
-        var myTypeConverters = getTypeConverters(typeConverters);
-        if (myTypeConverters.length !== myTypes.length) {
-            throwInternalError('Mismatched type converter count');
-        }
-        for (var i = 0; i < myTypes.length; ++i) {
-            registerType(myTypes[i], myTypeConverters[i]);
-        }
+      var myTypeConverters = getTypeConverters(typeConverters);
+      if (myTypeConverters.length !== myTypes.length) {
+        throwInternalError('Mismatched type converter count');
+      }
+      for (var i = 0; i < myTypes.length; ++i) {
+        registerType(myTypes[i], myTypeConverters[i]);
+      }
     }
 
     var typeConverters = new Array(dependentTypes.length);
@@ -104,7 +104,7 @@ var LibraryEmbindShared = {
   $embind_init_charCodes: () => {
     var codes = new Array(256);
     for (var i = 0; i < 256; ++i) {
-        codes[i] = String.fromCharCode(i);
+      codes[i] = String.fromCharCode(i);
     }
     embind_charCodes = codes;
   },
@@ -113,7 +113,7 @@ var LibraryEmbindShared = {
     var ret = "";
     var c = ptr;
     while (HEAPU8[c]) {
-        ret += embind_charCodes[HEAPU8[c++]];
+      ret += embind_charCodes[HEAPU8[c++]];
     }
     return ret;
   },
@@ -124,13 +124,32 @@ var LibraryEmbindShared = {
     _free(ptr);
     return rv;
   },
-
+  $getFunctionName__deps: [],
+  $getFunctionName: (signature) => {
+    signature = signature.trim();
+    const argsIndex = signature.indexOf("(");
+    if (argsIndex !== -1 && signature[signature.length - 1] == ")") {
+      return signature.substr(0, argsIndex);
+    } else {
+      return signature;
+    }
+  },
+  $getFunctionArgsName__deps: [],
+  $getFunctionArgsName: (signature) => {
+    signature = signature.trim();
+    const argsIndex = signature.indexOf("(") + 1;
+    if (argsIndex !== -1 && signature[signature.length - 1] == ")") {
+      return signature.substr(argsIndex, signature.length - argsIndex - 1).replaceAll(" ", "").split(",").filter(n => n.length);
+    } else {
+      return [];
+    }
+  },
   $heap32VectorToArray: (count, firstElement) => {
     var array = [];
     for (var i = 0; i < count; i++) {
-        // TODO(https://github.com/emscripten-core/emscripten/issues/17310):
-        // Find a way to hoist the `>> 2` or `>> 3` out of this loop.
-        array.push({{{ makeGetValue('firstElement', `i * ${POINTER_SIZE}`, '*') }}});
+      // TODO(https://github.com/emscripten-core/emscripten/issues/17310):
+      // Find a way to hoist the `>> 2` or `>> 3` out of this loop.
+      array.push({{{ makeGetValue('firstElement', `i * ${POINTER_SIZE}`, '*') }}});
     }
     return array;
   },

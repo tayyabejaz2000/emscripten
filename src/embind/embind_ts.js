@@ -185,7 +185,7 @@ var LibraryEmbind = {
     print(nameMap, out) {
       out.push(`export type ${this.name} = {\n`);
       const outFields = [];
-      for (const {name, type} of this.fields) {
+      for (const { name, type } of this.fields) {
         outFields.push(`  ${name}: ${nameMap(type)}`);
       }
       out.push(outFields.join(',\n'))
@@ -245,7 +245,7 @@ var LibraryEmbind = {
   },
 
   $registerType__deps: ['$sharedRegisterType'],
-  $registerType: function(rawType, registeredInstance, options = {}) {
+  $registerType: function (rawType, registeredInstance, options = {}) {
     return sharedRegisterType(rawType, registeredInstance, options);
   },
   $registerPrimitiveType__deps: ['$registerType', '$PrimitiveType'],
@@ -257,12 +257,14 @@ var LibraryEmbind = {
   $registerIntegerType: (id) => {
     registerType(id, new IntegerType(id));
   },
-  $createFunctionDefinition__deps: ['$FunctionDefinition', '$heap32VectorToArray', '$readLatin1String', '$Argument', '$whenDependentTypesAreResolved'],
+  $createFunctionDefinition__deps: ['$FunctionDefinition', '$heap32VectorToArray', '$readLatin1String', '$Argument', '$whenDependentTypesAreResolved', '$getFunctionName', '$getFunctionArgsName'],
   $createFunctionDefinition: (name, argCount, rawArgTypesAddr, hasThis, cb) => {
     const argTypes = heap32VectorToArray(argCount, rawArgTypesAddr);
     name = readLatin1String(name);
 
-    whenDependentTypesAreResolved([], argTypes, function(argTypes) {
+    whenDependentTypesAreResolved([], argTypes, function (argTypes) {
+      const argsName = getFunctionArgsName(name);
+      name = getFunctionName(name);
       const returnType = argTypes[0];
       let thisType = null;
       let argStart = 1;
@@ -271,8 +273,13 @@ var LibraryEmbind = {
         argStart = 2;
       }
       const args = [];
+      let x = 0;
       for (let i = argStart; i < argTypes.length; i++) {
-        args.push(new Argument(`_${i - argStart}`, argTypes[i]));
+        if (argsName.length && x < argsName.length) {
+          args.push(new Argument(argsName[x++], argTypes[i]));
+        } else {
+          args.push(new Argument(`_${i - argStart}`, argTypes[i]));
+        }
       }
       const funcDef = new FunctionDefinition(name, returnType, args, thisType);
       cb(funcDef);
@@ -318,24 +325,24 @@ var LibraryEmbind = {
     });
   },
   _embind_register_class__deps: ['$readLatin1String', '$ClassDefinition', '$whenDependentTypesAreResolved', '$moduleDefinitions'],
-  _embind_register_class: function(rawType,
-                                  rawPointerType,
-                                  rawConstPointerType,
-                                  baseClassRawType,
-                                  getActualTypeSignature,
-                                  getActualType,
-                                  upcastSignature,
-                                  upcast,
-                                  downcastSignature,
-                                  downcast,
-                                  name,
-                                  destructorSignature,
-                                  rawDestructor) {
+  _embind_register_class: function (rawType,
+    rawPointerType,
+    rawConstPointerType,
+    baseClassRawType,
+    getActualTypeSignature,
+    getActualType,
+    upcastSignature,
+    upcast,
+    downcastSignature,
+    downcast,
+    name,
+    destructorSignature,
+    rawDestructor) {
     name = readLatin1String(name);
     whenDependentTypesAreResolved(
       [rawType, rawPointerType, rawConstPointerType],
       baseClassRawType ? [baseClassRawType] : [],
-      function(base) {
+      function (base) {
         const classDef = new ClassDefinition(rawType, name, base.length ? base[0] : null);
         moduleDefinitions.push(classDef);
         return [classDef, classDef, classDef];
@@ -344,7 +351,7 @@ var LibraryEmbind = {
 
   },
   _embind_register_class_constructor__deps: ['$whenDependentTypesAreResolved', '$createFunctionDefinition'],
-  _embind_register_class_constructor: function(
+  _embind_register_class_constructor: function (
     rawClassType,
     argCount,
     rawArgTypesAddr,
@@ -352,7 +359,7 @@ var LibraryEmbind = {
     invoker,
     rawConstructor
   ) {
-    whenDependentTypesAreResolved([], [rawClassType], function(classType) {
+    whenDependentTypesAreResolved([], [rawClassType], function (classType) {
       classType = classType[0];
       createFunctionDefinition(`constructor ${classType.name}`, argCount, rawArgTypesAddr, false, (funcDef) => {
         classType.constructors.push(funcDef);
@@ -361,15 +368,15 @@ var LibraryEmbind = {
     });
   },
   _embind_register_class_function__deps: ['$createFunctionDefinition'],
-  _embind_register_class_function: function(rawClassType,
-          methodName,
-          argCount,
-          rawArgTypesAddr, // [ReturnType, ThisType, Args...]
-          invokerSignature,
-          rawInvoker,
-          context,
-          isPureVirtual,
-          isAsync) {
+  _embind_register_class_function: function (rawClassType,
+    methodName,
+    argCount,
+    rawArgTypesAddr, // [ReturnType, ThisType, Args...]
+    invokerSignature,
+    rawInvoker,
+    context,
+    isPureVirtual,
+    isAsync) {
     createFunctionDefinition(methodName, argCount, rawArgTypesAddr, true, (funcDef) => {
       const classDef = funcDef.thisType;
       classDef.methods.push(funcDef);
@@ -377,22 +384,22 @@ var LibraryEmbind = {
   },
   _embind_register_class_property__deps: [
     '$readLatin1String', '$whenDependentTypesAreResolved', '$ClassProperty'],
-  _embind_register_class_property: function(classType,
-                                            fieldName,
-                                            getterReturnType,
-                                            getterSignature,
-                                            getter,
-                                            getterContext,
-                                            setterArgumentType,
-                                            setterSignature,
-                                            setter,
-                                            setterContext) {
+  _embind_register_class_property: function (classType,
+    fieldName,
+    getterReturnType,
+    getterSignature,
+    getter,
+    getterContext,
+    setterArgumentType,
+    setterSignature,
+    setter,
+    setterContext) {
     fieldName = readLatin1String(fieldName);
     const readonly = setter === 0;
     assert(readonly || getterReturnType === setterArgumentType, 'Mismatched getter and setter types are not supported.');
-    whenDependentTypesAreResolved([], [classType], function(classType) {
+    whenDependentTypesAreResolved([], [classType], function (classType) {
       classType = classType[0];
-      whenDependentTypesAreResolved([], [getterReturnType], function(types) {
+      whenDependentTypesAreResolved([], [getterReturnType], function (types) {
         const prop = new ClassProperty(types[0], fieldName, readonly);
         classType.properties.push(prop);
         return [];
@@ -401,15 +408,15 @@ var LibraryEmbind = {
     });
   },
   _embind_register_class_class_function__deps: ['$createFunctionDefinition'],
-  _embind_register_class_class_function: function(rawClassType,
-                                                  methodName,
-                                                  argCount,
-                                                  rawArgTypesAddr,
-                                                  invokerSignature,
-                                                  rawInvoker,
-                                                  fn,
-                                                  isAsync) {
-    whenDependentTypesAreResolved([], [rawClassType], function(classType) {
+  _embind_register_class_class_function: function (rawClassType,
+    methodName,
+    argCount,
+    rawArgTypesAddr,
+    invokerSignature,
+    rawInvoker,
+    fn,
+    isAsync) {
+    whenDependentTypesAreResolved([], [rawClassType], function (classType) {
       classType = classType[0];
       createFunctionDefinition(methodName, argCount, rawArgTypesAddr, false, (funcDef) => {
         classType.staticMethods.push(funcDef);
@@ -420,17 +427,17 @@ var LibraryEmbind = {
   _embind_register_class_class_property__deps: [
     '$readLatin1String', '$whenDependentTypesAreResolved', '$ClassProperty'],
   _embind_register_class_class_property: (rawClassType,
-                                          fieldName,
-                                          rawFieldType,
-                                          rawFieldPtr,
-                                          getterSignature,
-                                          getter,
-                                          setterSignature,
-                                          setter) => {
+    fieldName,
+    rawFieldType,
+    rawFieldPtr,
+    getterSignature,
+    getter,
+    setterSignature,
+    setter) => {
     fieldName = readLatin1String(fieldName);
-    whenDependentTypesAreResolved([], [rawClassType], function(classType) {
+    whenDependentTypesAreResolved([], [rawClassType], function (classType) {
       classType = classType[0];
-      whenDependentTypesAreResolved([], [rawFieldType], function(types) {
+      whenDependentTypesAreResolved([], [rawFieldType], function (types) {
         const prop = new ClassProperty(types[0], fieldName);
         classType.staticProperties.push(prop);
         return [];
@@ -439,24 +446,24 @@ var LibraryEmbind = {
     });
   },
   // Stub function. This is called a when extending an object and not needed for TS generation.
-  _embind_create_inheriting_constructor: (constructorName, wrapperType, properties) => {},
+  _embind_create_inheriting_constructor: (constructorName, wrapperType, properties) => { },
   _embind_register_enum__deps: ['$readLatin1String', '$EnumDefinition', '$moduleDefinitions'],
-  _embind_register_enum: function(rawType, name, size, isSigned) {
+  _embind_register_enum: function (rawType, name, size, isSigned) {
     name = readLatin1String(name);
     const enumDef = new EnumDefinition(rawType, name);
     registerType(rawType, enumDef);
     moduleDefinitions.push(enumDef);
   },
   _embind_register_enum_value__deps: ['$readLatin1String', '$requireRegisteredType'],
-  _embind_register_enum_value: function(rawEnumType, name, enumValue) {
+  _embind_register_enum_value: function (rawEnumType, name, enumValue) {
     name = readLatin1String(name);
     const enumDef = requireRegisteredType(rawEnumType, name);
     enumDef.items.push([name, enumValue]);
   },
   _embind_register_constant__deps: ['$readLatin1String', '$ConstantDefinition', '$whenDependentTypesAreResolved', '$moduleDefinitions'],
-  _embind_register_constant: function(name, typeId, value) {
+  _embind_register_constant: function (name, typeId, value) {
     name = readLatin1String(name);
-    whenDependentTypesAreResolved([], [typeId], function(types) {
+    whenDependentTypesAreResolved([], [typeId], function (types) {
       const def = new ConstantDefinition(types[0], name);
       moduleDefinitions.push(def);
       return [];
@@ -464,7 +471,7 @@ var LibraryEmbind = {
   },
   _embind_register_value_array__deps: [
     '$readLatin1String', '$ValueArrayDefinition', '$tupleRegistrations'],
-  _embind_register_value_array: function(
+  _embind_register_value_array: function (
     rawType,
     name,
     constructorSignature,
@@ -477,7 +484,7 @@ var LibraryEmbind = {
     tupleRegistrations[rawType] = valueArray;
   },
   _embind_register_value_array_element__deps: ['$tupleRegistrations'],
-  _embind_register_value_array_element: function(
+  _embind_register_value_array_element: function (
     rawTupleType,
     getterReturnType,
     getterSignature,
@@ -493,17 +500,17 @@ var LibraryEmbind = {
     valueArray.elementTypeIds.push(getterReturnType);
   },
   _embind_finalize_value_array__deps: ['$whenDependentTypesAreResolved', '$moduleDefinitions', '$tupleRegistrations'],
-  _embind_finalize_value_array: function(rawTupleType) {
+  _embind_finalize_value_array: function (rawTupleType) {
     const valueArray = tupleRegistrations[rawTupleType];
     delete tupleRegistrations[rawTupleType];
-    whenDependentTypesAreResolved([rawTupleType], valueArray.elementTypeIds, function(types) {
+    whenDependentTypesAreResolved([rawTupleType], valueArray.elementTypeIds, function (types) {
       moduleDefinitions.push(valueArray);
       valueArray.elements = types;
       return [valueArray];
     });
   },
   _embind_register_value_object__deps: ['$readLatin1String', '$ValueObjectDefinition', '$structRegistrations'],
-  _embind_register_value_object: function(
+  _embind_register_value_object: function (
     rawType,
     name,
     constructorSignature,
@@ -517,7 +524,7 @@ var LibraryEmbind = {
   },
   _embind_register_value_object_field__deps: [
     '$readLatin1String', '$structRegistrations'],
-  _embind_register_value_object_field: function(
+  _embind_register_value_object_field: function (
     structType,
     fieldName,
     getterReturnType,
@@ -535,10 +542,10 @@ var LibraryEmbind = {
     valueObject.fieldNames.push(readLatin1String(fieldName));
   },
   _embind_finalize_value_object__deps: ['$moduleDefinitions', '$whenDependentTypesAreResolved', '$structRegistrations'],
-  _embind_finalize_value_object: function(structType) {
+  _embind_finalize_value_object: function (structType) {
     const valueObject = structRegistrations[structType];
     delete structRegistrations[structType];
-    whenDependentTypesAreResolved([structType], valueObject.fieldTypeIds, function(types) {
+    whenDependentTypesAreResolved([structType], valueObject.fieldTypeIds, function (types) {
       moduleDefinitions.push(valueObject);
       for (let i = 0; i < types.length; i++) {
         valueObject.fields.push({
@@ -550,19 +557,19 @@ var LibraryEmbind = {
     });
   },
   _embind_register_smart_ptr__deps: ['$whenDependentTypesAreResolved'],
-  _embind_register_smart_ptr: function(rawType,
-                                       rawPointeeType,
-                                       name,
-                                       sharingPolicy,
-                                       getPointeeSignature,
-                                       rawGetPointee,
-                                       constructorSignature,
-                                       rawConstructor,
-                                       shareSignature,
-                                       rawShare,
-                                       destructorSignature,
-                                       rawDestructor) {
-    whenDependentTypesAreResolved([rawType], [rawPointeeType], function(pointeeType) {
+  _embind_register_smart_ptr: function (rawType,
+    rawPointeeType,
+    name,
+    sharingPolicy,
+    getPointeeSignature,
+    rawGetPointee,
+    constructorSignature,
+    rawConstructor,
+    shareSignature,
+    rawShare,
+    destructorSignature,
+    rawDestructor) {
+    whenDependentTypesAreResolved([rawType], [rawPointeeType], function (pointeeType) {
       return [pointeeType[0]];
     });
   },
