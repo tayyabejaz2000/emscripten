@@ -4,7 +4,7 @@
 // found in the LICENSE file.
 var LibraryEmbindShared = {
   $InternalError__postset: "InternalError = Module['InternalError'] = class InternalError extends Error { constructor(message) { super(message); this.name = 'InternalError'; }}",
-  $InternalError:  undefined,
+  $InternalError: undefined,
   $BindingError__postset: "BindingError = Module['BindingError'] = class BindingError extends Error { constructor(message) { super(message); this.name = 'BindingError'; }}",
   $BindingError: undefined,
 
@@ -15,7 +15,7 @@ var LibraryEmbindShared = {
   $throwBindingError: (message) => { throw new BindingError(message); },
 
   // typeID -> { toWireType: ..., fromWireType: ... }
-  $registeredTypes:  {},
+  $registeredTypes: {},
 
   // typeID -> [callback]
   $awaitingDependencies: {},
@@ -32,7 +32,7 @@ var LibraryEmbindShared = {
     '$typeDependencies', '$throwBindingError',
     '$whenDependentTypesAreResolved'],
   $sharedRegisterType__docs: '/** @param {Object=} options */',
-  $sharedRegisterType: function(rawType, registeredInstance, options = {}) {
+  $sharedRegisterType: function (rawType, registeredInstance, options = {}) {
     var name = registeredInstance.name;
     if (!rawType) {
       throwBindingError(`type "${name}" must have a positive integer typeid pointer`);
@@ -59,7 +59,7 @@ var LibraryEmbindShared = {
     '$awaitingDependencies', '$registeredTypes',
     '$typeDependencies', '$throwInternalError'],
   $whenDependentTypesAreResolved: (myTypes, dependentTypes, getTypeConverters) => {
-    myTypes.forEach(function(type) {
+    myTypes.forEach(function (type) {
       typeDependencies[type] = dependentTypes;
     });
 
